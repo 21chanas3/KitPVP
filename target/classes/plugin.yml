@@ -1,0 +1,7 @@
+name: kitpvp
+version: 0.1
+description: kitpvp by Qubd
+author: Qubd
+main: com.Qubd.kitpvp.Main
+commands:
+  kit:
