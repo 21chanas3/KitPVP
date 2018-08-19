@@ -1,7 +1,5 @@
 package com.Qubd.kitpvp;
 
-
-
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -15,14 +13,12 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
 
-import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.util.UUID;
 
 
 public class EventListeners implements Listener {
@@ -53,34 +49,26 @@ public class EventListeners implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent e) throws IOException {
         final Player player = e.getPlayer();
-        if(player.hasPlayedBefore()) {
-            BukkitRunnable r = new BukkitRunnable() {
-                public void run() {
-                    try {
-                        main.openConnection();
-                        Statement statement = main.connection.createStatement();
-                        statement.executeUpdate("USE kitpvp");
-                        ResultSet result = statement.executeQuery("SELECT * FROM playerData WHERE uuid = " + player.getUniqueId());
-                        Combatant joiningCombatant = new Combatant(
-                                result.getInt("kit"),
-                                result.getInt("level"),
-                                result.getInt("gold"),
-                                result.getBigDecimal("totalExp"),
-                                result.getInt("kills"),
-                                result.getInt("deaths"));
-                        main.combatantMap.put(player, joiningCombatant);
-                    } catch(ClassNotFoundException e) {
-                        e.printStackTrace();
-                    } catch(SQLException e) {
-                        e.printStackTrace();
-                    }
-                }
-            };
-            r.runTaskAsynchronously(main);
+        if (main.getDatabaseManager().playerExists(player.getUniqueId())) {
+            ResultSet resultSet = main.getDatabaseManager().getPlayer(player.getUniqueId());
+            try {
+                resultSet.next();
+                Combatant joinedCombatant = new Combatant(
+                        player.getUniqueId(),
+                        resultSet.getInt("kit"),
+                        resultSet.getInt("level"),
+                        resultSet.getInt("gold"),
+                        resultSet.getBigDecimal("totalExp"),
+                        resultSet.getInt("kills"),
+                        resultSet.getInt("deaths"));
+                main.combatantMap.put(player,joinedCombatant);
+            } catch (SQLException e1) {
+                e1.printStackTrace();
+            }
         } else {
-            BigDecimal totalExp = new BigDecimal("0");
-            Combatant defaultCombatant = new Combatant(1, 0, 100, totalExp, 0, 0);
-            main.combatantMap.put(player, defaultCombatant);
+            main.getDatabaseManager().createPlayer(player.getUniqueId());
+            Combatant joinedCombatant = new Combatant(player.getUniqueId(),1,1,50,BigDecimal.ZERO,0,0);
+            main.combatantMap.put(player,joinedCombatant);
         }
         main.buildSidebar(player);
     }
@@ -88,32 +76,14 @@ public class EventListeners implements Listener {
     public void onLeave(PlayerQuitEvent e) {
         final Player player = e.getPlayer();
         Combatant leavingCombatant = main.combatantMap.get(player);
+        final UUID uuid = leavingCombatant.getUuid();
         final int kit = leavingCombatant.getKit();
         final int level = leavingCombatant.getLevel();
         final int gold = leavingCombatant.getGold();
+        final BigDecimal totalExp = leavingCombatant.getTotalExp();
         final int deaths = leavingCombatant.getDeaths();
         final int kills = leavingCombatant.getKills();
-        final BigDecimal totalExp = leavingCombatant.getTotalExp();
-        BukkitRunnable r = new BukkitRunnable() {
-            public void run() {
-                try {
-                    main.openConnection();
-                    Statement statement = main.connection.createStatement();
-                    statement.executeUpdate("USE kitpvp");
-                    ResultSet result = statement.executeQuery("SELECT * FROM playerData WHERE uuid = " + player.getUniqueId());
-                    if (result.next()) {
-                        statement.executeUpdate("UPDATE kitpvp SET kit ='"+kit+"', level ='"+level+ "', gold ='"+gold+ "', deaths ='"+deaths+ "', kills ='"+kills+ "', totalExp ='"+totalExp+"' WHERE uuid ="+ player.getUniqueId()+";");
-                    } else {
-                        statement.executeUpdate("INSERT INTO kitpvp VALUES(" + player.getUniqueId() +"," + kit +","+ level +","+ gold +","+ totalExp +","+ kills +","+ deaths +");");
-                    }
-                } catch(ClassNotFoundException e) {
-                    e.printStackTrace();
-                } catch(SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-        r.runTaskAsynchronously(main);
+        main.getDatabaseManager().updatePlayer(uuid,kit,level,gold,totalExp,kills,deaths);
         main.combatantMap.remove(player);
     }
     @EventHandler

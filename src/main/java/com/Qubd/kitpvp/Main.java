@@ -1,5 +1,6 @@
 package com.Qubd.kitpvp;
 
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -8,11 +9,10 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.*;
 
-
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,38 +22,20 @@ import java.util.Map;
 @SuppressWarnings("SpellCheckingInspection")
 public class Main extends JavaPlugin {
 
-    Connection connection;
-    private String host = "localhost";
-    private String database = "luckperms";
-    private String username = "root";
-    private String password = "Sh1ngyan";
-    private int port = 3306;
+    private DatabaseManager databaseManager;
 
-    Combatant[] onlineCombatants = new Combatant[50];
+    private Connection connection;
+    public String url, username, password;
+
     Map<Player, Combatant> combatantMap = new HashMap<Player, Combatant>();
 
     @Override
     public void onEnable() {
-        System.out.println("[KitPVP] Enabled!");
+        Bukkit.getConsoleSender().sendMessage("[KitPVP] Enabled!");
         getCommand("kit").setExecutor(new KitCommand());
         Bukkit.getPluginManager().registerEvents(new EventListeners(this),this);
-        BukkitRunnable r = new BukkitRunnable() {
-            public void run() {
-                try {
-                    openConnection();
-                    Statement statement = connection.createStatement();
-                    statement.executeUpdate("CREATE DATABASE IF NOT EXISTS kitpvp;");
-                    statement.executeUpdate("USE kitpvp");
-                    statement.executeUpdate("CREATE TABLE IF NOT EXISTS playerData(uuid VARCHAR(36), kit INT, level INT, gold INT, totalEXP DECIMAL(10, 2), kills INT, deaths INT);");
-                } catch(ClassNotFoundException e) {
-                    e.printStackTrace();
-                } catch(SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-        r.runTaskAsynchronously(this);
-
+        databaseManager = new DatabaseManager();
+        mySQLSetup();
     }
     @Override
     public void onDisable() {
@@ -181,17 +163,34 @@ public class Main extends JavaPlugin {
 
         player.setScoreboard(board);
     }
-    public void openConnection() throws SQLException, ClassNotFoundException {
-        if (connection != null && !connection.isClosed()) {
-            return;
-        }
+    public void mySQLSetup() {
+         url = "jdbc:mysql://localhost:3306/kitpvp?characterEncoding=utf8";
+         username = "root";
+         password = "password";
 
-        synchronized (this) {
-            if (connection != null && !connection.isClosed()) {
-                return;
+        try {
+            synchronized (this) {
+                if(getConnection() != null && !getConnection().isClosed()) {
+                    return;
+                }
+                Class.forName("com.mysql.jdbc.Driver").newInstance();
+                setConnection(DriverManager.getConnection(this.url, this.username, this.password));
+                Bukkit.getConsoleSender().sendMessage("SQL Database Connected");
             }
-            Class.forName("com.mysql.jdbc.Driver");
-            connection = DriverManager.getConnection("jdbc:mysql://" + this.host+ ":" + this.port + "/" + this.database, this.username, this.password);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+    }
+
+    public Connection getConnection() {
+        return connection;
+    }
+
+    public void setConnection(Connection connection) {
+        this.connection = connection;
+    }
+
+    public DatabaseManager getDatabaseManager() {
+        return databaseManager;
     }
 }

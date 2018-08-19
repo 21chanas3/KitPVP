@@ -2,12 +2,15 @@ package com.Qubd.kitpvp;
 
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public class Combatant {
+    private UUID uuid;
     private int level,gold,kills,deaths,kit;
     private BigDecimal totalExp;
 
-    public Combatant(int kit, int level, int gold, BigDecimal totalExp, int kills, int deaths) {
+    public Combatant(UUID uuid, int kit, int level, int gold, BigDecimal totalExp, int kills, int deaths) {
+        this.uuid = uuid;
         this.kit = kit;
         this.level = level;
         this.gold = gold;
@@ -62,5 +65,11 @@ public class Combatant {
 
     public void setDeaths(int deaths) {
         this.deaths = deaths;
+    }
+    public UUID getUuid() {
+        return uuid;
+    }
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
     }
 }
