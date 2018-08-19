@@ -136,7 +136,7 @@ public class Main extends JavaPlugin {
         levelAmount.setSuffix("");
         obj.getScore(ChatColor.DARK_GREEN.toString()).setScore(7);
 
-        Score space2 = obj.getScore("");
+        Score space2 = obj.getScore(" ");
         space2.setScore(6);
 
         Score expToNext = obj.getScore(ChatColor.GREEN.toString() +ChatColor.BOLD.toString() + "EXP Left");
@@ -150,7 +150,7 @@ public class Main extends JavaPlugin {
         expToNextAmount.setSuffix("");
         obj.getScore(ChatColor.GREEN.toString()).setScore(4);
 
-        Score space3 = obj.getScore("");
+        Score space3 = obj.getScore("  ");
         space3.setScore(3);
 
         Score kdr = obj.getScore(ChatColor.AQUA.toString() + ChatColor.BOLD+ "KDR");

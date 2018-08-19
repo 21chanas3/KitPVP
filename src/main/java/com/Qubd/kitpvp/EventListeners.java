@@ -45,6 +45,8 @@ public class EventListeners implements Listener {
         double newTotalExp = oldTotalExp + (multiplier * 10);
         BigDecimal convertedTotalExp  = new BigDecimal(newTotalExp);
         killerCombatant.setTotalExp(convertedTotalExp);
+        main.buildSidebar(victim);
+        main.buildSidebar(killer);
     }
     @EventHandler
     public void onJoin(PlayerJoinEvent e) throws IOException {
