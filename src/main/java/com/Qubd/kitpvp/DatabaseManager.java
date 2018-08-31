@@ -1,6 +1,5 @@
 package com.Qubd.kitpvp;
 
-import com.avaje.ebean.RawSql;
 
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
@@ -10,6 +9,16 @@ import java.util.UUID;
 
 public class DatabaseManager {
     private Main plugin = Main.getPlugin(Main.class);
+
+    public void initializeTables() {
+        try {
+            PreparedStatement createTablesIfNotExists = plugin.getConnection().prepareStatement("CREATE TABLE IF NOT EXISTS players (uuid VARCHAR(60), kit INT, level INT, gold INT, totalExp DECIMAL(20,2), kills INT, deaths INT)");
+            createTablesIfNotExists.executeUpdate();
+            return;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
     public boolean playerExists(UUID uuid) {
         try {

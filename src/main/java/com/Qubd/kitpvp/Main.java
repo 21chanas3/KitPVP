@@ -4,6 +4,7 @@ package com.Qubd.kitpvp;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -11,12 +12,13 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scoreboard.*;
 
+
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
 
 
 @SuppressWarnings("SpellCheckingInspection")
@@ -27,7 +29,9 @@ public class Main extends JavaPlugin {
     private Connection connection;
     public String url, username, password;
 
-    Map<Player, Combatant> combatantMap = new HashMap<Player, Combatant>();
+    Map<UUID, Combatant> combatantMap = new HashMap<UUID, Combatant>();
+
+    FileConfiguration config = getConfig();
 
     @Override
     public void onEnable() {
@@ -36,11 +40,29 @@ public class Main extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new EventListeners(this),this);
         databaseManager = new DatabaseManager();
         mySQLSetup();
+        getDatabaseManager().initializeTables();
+        loadPreviousCombatants();
+        config.addDefault("spawnx", -668.5);
+        config.addDefault("spawny", 4.0);
+        config.addDefault("spawnz", 602.5);
+        config.addDefault("world", "GameLobby");
+        config.options().copyDefaults(true);
+        saveConfig();
     }
     @Override
     public void onDisable() {
-
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            Combatant currentCombatant = combatantMap.get(player.getUniqueId());
+            getDatabaseManager().updatePlayer(player.getUniqueId(), currentCombatant.getKit(), currentCombatant.getLevel(), currentCombatant.getGold(), currentCombatant.getTotalExp(), currentCombatant.getKills(), currentCombatant.getDeaths());
+            combatantMap.remove(player.getUniqueId());
+        }
+        if (combatantMap.isEmpty()) {
+            System.out.println("Combatants stored!");
+        } else {
+            System.out.println("Combatant storage failed!");
+        }
     }
+
     public static void applyKitUI(Player player) {
         //Creation
         Inventory kitGUI = Bukkit.createInventory(null,27, ChatColor.AQUA + "Kits");
@@ -106,9 +128,10 @@ public class Main extends JavaPlugin {
         //Show GUI
         player.openInventory(kitGUI);
     }
+
     public void buildSidebar(Player player) {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
-        Combatant combatant = combatantMap.get(player);
+        Combatant combatant = combatantMap.get(player.getUniqueId());
 
 
 
@@ -142,7 +165,7 @@ public class Main extends JavaPlugin {
         Score expToNext = obj.getScore(ChatColor.GREEN.toString() +ChatColor.BOLD.toString() + "EXP Left");
         expToNext.setScore(5);
 
-        double expToNextValue = combatant.getTotalExp().doubleValue() % 100;
+        double expToNextValue = 100 - (combatant.getTotalExp().doubleValue() % 100);
         //noinspection SpellCheckingInspection
         Team expToNextAmount = board.registerNewTeam("exptn");
         expToNextAmount.addEntry(ChatColor.GREEN.toString());
@@ -163,10 +186,11 @@ public class Main extends JavaPlugin {
 
         player.setScoreboard(board);
     }
+
     public void mySQLSetup() {
-         url = "jdbc:mysql://localhost:3306/kitpvp?characterEncoding=utf8";
+         url = "jdbc:mysql://localhost:3306/luckperms?characterEncoding=utf8";
          username = "root";
-         password = "password";
+         password = "ELrnLtI&SYQdUIeWsMNlc5W17Zd1uq@";
 
         try {
             synchronized (this) {
@@ -193,4 +217,37 @@ public class Main extends JavaPlugin {
     public DatabaseManager getDatabaseManager() {
         return databaseManager;
     }
+
+    public void loadPreviousCombatants() {
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            if (getDatabaseManager().playerExists(player.getUniqueId())) {
+                ResultSet resultSet = getDatabaseManager().getPlayer(player.getUniqueId());
+                try {
+                    resultSet.next();
+                    Combatant joinedCombatant = new Combatant(
+                            player.getUniqueId(),
+                            resultSet.getInt("kit"),
+                            resultSet.getInt("level"),
+                            resultSet.getInt("gold"),
+                            resultSet.getBigDecimal("totalExp"),
+                            resultSet.getInt("kills"),
+                            resultSet.getInt("deaths"));
+                    combatantMap.put(player.getUniqueId(),joinedCombatant);
+                } catch (SQLException e1) {
+                    e1.printStackTrace();
+                }
+            } else {
+                getDatabaseManager().createPlayer(player.getUniqueId());
+                Combatant joinedCombatant = new Combatant(player.getUniqueId(),1,1,50, BigDecimal.ZERO,0,0);
+                combatantMap.put(player.getUniqueId(),joinedCombatant);
+            }
+            buildSidebar(player);
+        }
+        if (!combatantMap.isEmpty()) {
+            System.out.println("Combatants loaded!");
+        } else {
+            System.out.println("Combatant loading failed!");
+        }
+    }
+
 }

@@ -1,5 +1,6 @@
 com\Qubd\kitpvp\Combatant.class
 com\Qubd\kitpvp\KitCommand.class
+com\Qubd\kitpvp\DefaultFontInfo.class
 com\Qubd\kitpvp\Main.class
 com\Qubd\kitpvp\EventListeners$1.class
 com\Qubd\kitpvp\DatabaseManager.class

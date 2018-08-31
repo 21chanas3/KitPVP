@@ -5,3 +5,4 @@ author: Qubd
 main: com.Qubd.kitpvp.Main
 commands:
   kit:
+  kitspawn:
